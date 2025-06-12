@@ -41,35 +41,28 @@ export const MessageWall = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       <MessageForm onSubmit={handleNewMessage} />
       
-      <div className="mt-12">
-        <h2 className="text-2xl font-semibold text-white mb-6 text-center">
-          Messages Partagés
-        </h2>
-        
-        {isLoading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
-          </div>
-        ) : approvedMessages.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-slate-400 text-lg">Aucun message pour le moment...</p>
-            <p className="text-slate-500 text-sm mt-2">Soyez le premier à partager vos pensées !</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {approvedMessages.map((message, index) => (
-              <MessageCard 
-                key={message.id} 
-                message={message} 
-                index={index}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+        </div>
+      ) : approvedMessages.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">Aucun message pour le moment...</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {approvedMessages.map((message, index) => (
+            <MessageCard 
+              key={message.id} 
+              message={message} 
+              index={index}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

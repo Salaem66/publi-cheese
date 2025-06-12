@@ -24,26 +24,21 @@ export const MessageCard = ({ message, index }: MessageCardProps) => {
   };
 
   return (
-    <div 
-      className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 animate-fade-in"
-      style={{ animationDelay: `${index * 100}ms` }}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+      <div className="flex justify-between items-start mb-2">
+        <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
           <span className="text-white font-bold text-sm">
             {String.fromCharCode(65 + (index % 26))}
           </span>
         </div>
-        <span className="text-slate-400 text-sm">
+        <span className="text-gray-400 text-sm">
           {formatTime(message.timestamp)}
         </span>
       </div>
       
-      <p className="text-white leading-relaxed break-words">
+      <p className="text-black leading-relaxed break-words">
         {message.content}
       </p>
-      
-      <div className="mt-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
     </div>
   );
 };

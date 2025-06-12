@@ -52,22 +52,20 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%239C92AC%22%20fill-opacity%3D%220.03%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"></div>
-      
-      <div className="relative z-10 container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Dashboard <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Admin</span>
+            <h1 className="text-3xl font-bold text-black mb-2">
+              Dashboard Admin - publicheese
             </h1>
-            <p className="text-slate-400">Modération des messages</p>
+            <p className="text-gray-600">Modération des messages</p>
           </div>
           
           <Button
             onClick={onLogout}
             variant="outline"
-            className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+            className="border-gray-300 text-black hover:bg-gray-50"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Déconnexion
@@ -76,59 +74,59 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <div className="flex items-center">
-              <Clock className="w-8 h-8 text-yellow-400 mr-3" />
+              <Clock className="w-8 h-8 text-gray-600 mr-3" />
               <div>
-                <p className="text-slate-400 text-sm">En attente</p>
-                <p className="text-white text-2xl font-bold">{stats.pending}</p>
+                <p className="text-gray-600 text-sm">En attente</p>
+                <p className="text-black text-2xl font-bold">{stats.pending}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <div className="flex items-center">
-              <Check className="w-8 h-8 text-green-400 mr-3" />
+              <Check className="w-8 h-8 text-gray-600 mr-3" />
               <div>
-                <p className="text-slate-400 text-sm">Approuvés</p>
-                <p className="text-white text-2xl font-bold">{stats.approved}</p>
+                <p className="text-gray-600 text-sm">Approuvés</p>
+                <p className="text-black text-2xl font-bold">{stats.approved}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center mr-3">
+              <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center mr-3">
                 <span className="text-white font-bold text-sm">T</span>
               </div>
               <div>
-                <p className="text-slate-400 text-sm">Total</p>
-                <p className="text-white text-2xl font-bold">{stats.total}</p>
+                <p className="text-gray-600 text-sm">Total</p>
+                <p className="text-black text-2xl font-bold">{stats.total}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Messages en attente */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-          <h2 className="text-xl font-semibold text-white mb-6">Messages en attente de modération</h2>
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-black mb-6">Messages en attente de modération</h2>
           
           {pendingMessages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-slate-400 text-lg">Aucun message en attente</p>
-              <p className="text-slate-500 text-sm mt-2">Tous les messages ont été traités !</p>
+              <p className="text-gray-500 text-lg">Aucun message en attente</p>
+              <p className="text-gray-400 text-sm mt-2">Tous les messages ont été traités !</p>
             </div>
           ) : (
             <div className="space-y-4">
               {pendingMessages.map((message) => (
-                <div key={message.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4">
                   <div className="flex justify-between items-start mb-3">
-                    <span className="text-slate-400 text-sm">
+                    <span className="text-gray-500 text-sm">
                       {formatTime(message.timestamp)}
                     </span>
                   </div>
                   
-                  <p className="text-white mb-4 leading-relaxed break-words">
+                  <p className="text-black mb-4 leading-relaxed break-words">
                     {message.content}
                   </p>
                   

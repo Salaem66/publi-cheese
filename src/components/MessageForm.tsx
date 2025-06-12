@@ -54,23 +54,19 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="message" className="block text-white font-medium mb-2">
-            Partagez vos pensées anonymement
-          </label>
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-6">
+      <form onSubmit={handleSubmit} className="flex gap-2 items-end">
+        <div className="flex-1">
           <textarea
-            id="message"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Écrivez votre message ici... (max 500 caractères)"
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all duration-200"
-            rows={4}
+            placeholder="Votre message..."
+            className="w-full px-3 py-2 border border-gray-300 rounded text-black placeholder-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+            rows={2}
             maxLength={500}
           />
           <div className="flex justify-end mt-1">
-            <span className={`text-sm ${message.length > 450 ? 'text-red-400' : 'text-slate-400'}`}>
+            <span className={`text-xs ${message.length > 450 ? 'text-red-500' : 'text-gray-400'}`}>
               {message.length}/500
             </span>
           </div>
@@ -79,18 +75,13 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
         <Button
           type="submit"
           disabled={isSubmitting || !message.trim()}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-medium py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
+          size="sm"
+          className="bg-black text-white hover:bg-gray-800 disabled:opacity-50"
         >
           {isSubmitting ? (
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Envoi en cours...
-            </div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           ) : (
-            <div className="flex items-center">
-              <Send className="w-4 h-4 mr-2" />
-              Envoyer anonymement
-            </div>
+            <Send className="w-4 h-4" />
           )}
         </Button>
       </form>
