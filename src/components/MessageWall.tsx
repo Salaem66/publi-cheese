@@ -17,6 +17,10 @@ export const MessageWall = () => {
   useEffect(() => {
     loadApprovedMessages();
     setIsLoading(false);
+    
+    // Recharger les messages toutes les 5 secondes pour la synchronisation
+    const interval = setInterval(loadApprovedMessages, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadApprovedMessages = () => {
@@ -28,16 +32,23 @@ export const MessageWall = () => {
   };
 
   const handleNewMessage = (content: string) => {
+    const moderationEnabled = localStorage.getItem('moderationEnabled') !== 'false';
+    
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
       timestamp: Date.now(),
-      status: 'pending'
+      status: moderationEnabled ? 'pending' : 'approved'
     };
 
     const existingMessages = JSON.parse(localStorage.getItem('messages') || '[]');
     const updatedMessages = [...existingMessages, newMessage];
     localStorage.setItem('messages', JSON.stringify(updatedMessages));
+    
+    // Si pas de modération, recharger immédiatement
+    if (!moderationEnabled) {
+      loadApprovedMessages();
+    }
   };
 
   return (
