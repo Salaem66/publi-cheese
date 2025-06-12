@@ -3,15 +3,34 @@ import { useState, useEffect } from 'react';
 import { MessageWall } from '../components/MessageWall';
 import { AdminDashboard } from '../components/AdminDashboard';
 import { Button } from '@/components/ui/button';
-import { Shield } from 'lucide-react';
 
 const Index = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminCode, setAdminCode] = useState('');
+  const [keySequence, setKeySequence] = useState('');
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      const newSequence = keySequence + event.key.toLowerCase();
+      
+      // Garder seulement les derniers caractères nécessaires
+      const trimmedSequence = newSequence.slice(-16); // "publicheeseadmin" = 16 caractères
+      setKeySequence(trimmedSequence);
+      
+      // Vérifier si la séquence correspond
+      if (trimmedSequence === 'publicheeseadmin') {
+        setShowAdminLogin(true);
+        setKeySequence(''); // Reset après activation
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [keySequence]);
 
   const handleAdminLogin = () => {
-    if (adminCode === 'admin123') {
+    if (adminCode === 'pipicaca') {
       setIsAdmin(true);
       setShowAdminLogin(false);
       setAdminCode('');
@@ -30,16 +49,6 @@ const Index = () => {
         {/* Header compact */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-black">publicheese</h1>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAdminLogin(!showAdminLogin)}
-            className="border-gray-300 text-black hover:bg-gray-50"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Admin
-          </Button>
         </div>
 
         {showAdminLogin && (
