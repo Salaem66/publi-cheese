@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Message } from './MessageWall';
+import { messageStorage, Message } from '../utils/messageStorage';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { LogOut, Check, X, Clock, Settings } from 'lucide-react';
@@ -15,8 +15,19 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [moderationEnabled, setModerationEnabled] = useState(true);
 
   useEffect(() => {
-    loadPendingMessages();
+    loadData();
     loadModerationSetting();
+    
+    // Ajouter un listener pour les changements
+    const handleMessagesChange = () => {
+      loadData();
+    };
+    
+    messageStorage.addListener(handleMessagesChange);
+    
+    return () => {
+      messageStorage.removeListener(handleMessagesChange);
+    };
   }, []);
 
   const loadModerationSetting = () => {
@@ -35,27 +46,21 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     });
   };
 
-  const loadPendingMessages = () => {
-    const messages = JSON.parse(localStorage.getItem('messages') || '[]') as Message[];
-    const pending = messages.filter(msg => msg.status === 'pending');
-    const approved = messages.filter(msg => msg.status === 'approved');
+  const loadData = () => {
+    const allMessages = messageStorage.getMessages();
+    const pending = messageStorage.getPendingMessages();
+    const approved = allMessages.filter(msg => msg.status === 'approved');
     
-    setPendingMessages(pending.sort((a, b) => b.timestamp - a.timestamp));
+    setPendingMessages(pending);
     setStats({
       pending: pending.length,
       approved: approved.length,
-      total: messages.length
+      total: allMessages.length
     });
   };
 
   const updateMessageStatus = (messageId: string, status: 'approved' | 'rejected') => {
-    const messages = JSON.parse(localStorage.getItem('messages') || '[]') as Message[];
-    const updatedMessages = messages.map(msg => 
-      msg.id === messageId ? { ...msg, status } : msg
-    );
-    
-    localStorage.setItem('messages', JSON.stringify(updatedMessages));
-    loadPendingMessages();
+    messageStorage.updateMessageStatus(messageId, status);
     
     toast({
       title: status === 'approved' ? "Message approuvé" : "Message rejeté",

@@ -2,13 +2,7 @@
 import { useState, useEffect } from 'react';
 import { MessageForm } from './MessageForm';
 import { MessageCard } from './MessageCard';
-
-export interface Message {
-  id: string;
-  content: string;
-  timestamp: number;
-  status: 'pending' | 'approved' | 'rejected';
-}
+import { messageStorage, Message } from '../utils/messageStorage';
 
 export const MessageWall = () => {
   const [approvedMessages, setApprovedMessages] = useState<Message[]>([]);
@@ -18,17 +12,25 @@ export const MessageWall = () => {
     loadApprovedMessages();
     setIsLoading(false);
     
-    // Recharger les messages toutes les 5 secondes pour la synchronisation
-    const interval = setInterval(loadApprovedMessages, 5000);
-    return () => clearInterval(interval);
+    // Ajouter un listener pour les changements
+    const handleMessagesChange = () => {
+      loadApprovedMessages();
+    };
+    
+    messageStorage.addListener(handleMessagesChange);
+    
+    // Synchroniser toutes les 2 secondes pour s'assurer que tous voient les messages
+    const interval = setInterval(loadApprovedMessages, 2000);
+    
+    return () => {
+      messageStorage.removeListener(handleMessagesChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadApprovedMessages = () => {
-    const messages = JSON.parse(localStorage.getItem('messages') || '[]') as Message[];
-    const approved = messages
-      .filter(msg => msg.status === 'approved')
-      .sort((a, b) => b.timestamp - a.timestamp);
-    setApprovedMessages(approved);
+    const messages = messageStorage.getApprovedMessages();
+    setApprovedMessages(messages);
   };
 
   const handleNewMessage = (content: string) => {
@@ -41,9 +43,7 @@ export const MessageWall = () => {
       status: moderationEnabled ? 'pending' : 'approved'
     };
 
-    const existingMessages = JSON.parse(localStorage.getItem('messages') || '[]');
-    const updatedMessages = [...existingMessages, newMessage];
-    localStorage.setItem('messages', JSON.stringify(updatedMessages));
+    messageStorage.addMessage(newMessage);
     
     // Si pas de modération, recharger immédiatement
     if (!moderationEnabled) {
