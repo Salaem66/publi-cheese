@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useMessages } from '../hooks/useMessages';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { LogOut, Check, X, Clock, Settings } from 'lucide-react';
+import { LogOut, Check, X, Clock, Settings, Trash2, Archive, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface AdminDashboardProps {
@@ -11,8 +10,9 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
-  const { messages, pendingMessages, updateMessageStatus } = useMessages();
+  const { messages, pendingMessages, archivedMessages, updateMessageStatus, deleteMessage, archiveMessage } = useMessages();
   const [moderationEnabled, setModerationEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('pending');
 
   useEffect(() => {
     const setting = localStorage.getItem('moderationEnabled');
@@ -40,6 +40,18 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     });
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer définitivement ce message ?')) {
+      await deleteMessage(messageId);
+    }
+  };
+
+  const handleArchiveMessage = async (messageId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir archiver ce message ?')) {
+      await archiveMessage(messageId);
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString('fr-FR');
   };
@@ -47,8 +59,89 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const stats = {
     pending: pendingMessages.length,
     approved: messages.length,
-    total: messages.length + pendingMessages.length
+    archived: archivedMessages.length,
+    total: messages.length + pendingMessages.length + archivedMessages.length
   };
+
+  const renderMessageActions = (message: any, isPublished = false) => (
+    <div className="flex gap-2 flex-wrap">
+      {!isPublished && (
+        <>
+          <Button
+            onClick={() => handleUpdateStatus(message.id, 'approved')}
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            <Check className="w-4 h-4 mr-1" />
+            Approuver
+          </Button>
+          
+          <Button
+            onClick={() => handleUpdateStatus(message.id, 'rejected')}
+            size="sm"
+            variant="destructive"
+          >
+            <X className="w-4 h-4 mr-1" />
+            Rejeter
+          </Button>
+        </>
+      )}
+      
+      {isPublished && (
+        <Button
+          onClick={() => handleArchiveMessage(message.id)}
+          size="sm"
+          variant="outline"
+          className="border-orange-300 text-orange-600 hover:bg-orange-50"
+        >
+          <Archive className="w-4 h-4 mr-1" />
+          Archiver
+        </Button>
+      )}
+      
+      <Button
+        onClick={() => handleDeleteMessage(message.id)}
+        size="sm"
+        variant="destructive"
+      >
+        <Trash2 className="w-4 h-4 mr-1" />
+        Supprimer
+      </Button>
+    </div>
+  );
+
+  const renderMessageCard = (message: any, isPublished = false) => (
+    <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4">
+      <div className="flex justify-between items-start mb-3">
+        <span className="text-gray-500 text-sm">
+          {formatTime(message.created_at)}
+        </span>
+        {isPublished && (
+          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+            Publié
+          </span>
+        )}
+      </div>
+      
+      {message.content && (
+        <p className="text-black mb-4 leading-relaxed break-words">
+          {message.content}
+        </p>
+      )}
+
+      {message.image_url && (
+        <div className="mb-4">
+          <img
+            src={message.image_url}
+            alt="Image du message"
+            className="max-w-64 h-auto rounded-lg border border-gray-200"
+          />
+        </div>
+      )}
+      
+      {renderMessageActions(message, isPublished)}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -93,7 +186,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         </div>
 
         {/* Statistiques */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <div className="flex items-center">
               <Clock className="w-8 h-8 text-gray-600 mr-3" />
@@ -125,72 +218,113 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               </div>
             </div>
           </div>
+          
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <Archive className="w-8 h-8 text-gray-600 mr-3" />
+              <div>
+                <p className="text-gray-600 text-sm">Archivés</p>
+                <p className="text-black text-2xl font-bold">{stats.archived}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Messages en attente */}
-        {moderationEnabled && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-black mb-6">Messages en attente de modération</h2>
-            
-            {pendingMessages.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">Aucun message en attente</p>
-                <p className="text-gray-400 text-sm mt-2">Tous les messages ont été traités !</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingMessages.map((message) => (
-                  <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="text-gray-500 text-sm">
-                        {formatTime(message.created_at)}
-                      </span>
-                    </div>
-                    
-                    {message.content && (
-                      <p className="text-black mb-4 leading-relaxed break-words">
-                        {message.content}
-                      </p>
-                    )}
+        {/* Onglets de navigation */}
+        <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'pending'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-black'
+            }`}
+          >
+            <Clock className="w-4 h-4 inline mr-2" />
+            En attente ({stats.pending})
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('published')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'published'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-black'
+            }`}
+          >
+            <Eye className="w-4 h-4 inline mr-2" />
+            Publiés ({stats.approved})
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('archived')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'archived'
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-black'
+            }`}
+          >
+            <Archive className="w-4 h-4 inline mr-2" />
+            Archivés ({stats.archived})
+          </button>
+        </div>
 
-                    {message.image_url && (
-                      <div className="mb-4">
-                        <img
-                          src={message.image_url}
-                          alt="Image du message"
-                          className="max-w-64 h-auto rounded-lg border border-gray-200"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleUpdateStatus(message.id, 'approved')}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Approuver
-                      </Button>
-                      
-                      <Button
-                        onClick={() => handleUpdateStatus(message.id, 'rejected')}
-                        size="sm"
-                        variant="destructive"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Rejeter
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Contenu des onglets */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          {activeTab === 'pending' && (
+            <div>
+              <h2 className="text-xl font-semibold text-black mb-6">Messages en attente de modération</h2>
+              
+              {pendingMessages.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">Aucun message en attente</p>
+                  <p className="text-gray-400 text-sm mt-2">Tous les messages ont été traités !</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pendingMessages.map((message) => renderMessageCard(message, false))}
+                </div>
+              )}
+            </div>
+          )}
 
-        {!moderationEnabled && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+          {activeTab === 'published' && (
+            <div>
+              <h2 className="text-xl font-semibold text-black mb-6">Messages publiés</h2>
+              
+              {messages.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">Aucun message publié</p>
+                  <p className="text-gray-400 text-sm mt-2">Les messages approuvés apparaîtront ici</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((message) => renderMessageCard(message, true))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'archived' && (
+            <div>
+              <h2 className="text-xl font-semibold text-black mb-6">Messages archivés</h2>
+              
+              {archivedMessages.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">Aucun message archivé</p>
+                  <p className="text-gray-400 text-sm mt-2">Les messages archivés apparaîtront ici</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {archivedMessages.map((message) => renderMessageCard(message, false))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!moderationEnabled && activeTab === 'pending' && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6">
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">Modération désactivée</p>
               <p className="text-gray-400 text-sm mt-2">Les messages sont publiés automatiquement</p>

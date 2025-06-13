@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Image, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -13,34 +13,56 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({
-          title: "Image trop volumineuse",
-          description: "L'image ne peut pas dépasser 5MB.",
-          variant: "destructive"
-        });
-        return;
-      }
+      processImageFile(file);
+    }
+  };
 
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Format non supporté",
-          description: "Veuillez sélectionner une image.",
-          variant: "destructive"
-        });
-        return;
-      }
+  const processImageFile = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "Image trop volumineuse",
+        description: "L'image ne peut pas dépasser 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Format non supporté",
+        description: "Veuillez sélectionner une image.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          processImageFile(file);
+        }
+        break;
+      }
     }
   };
 
@@ -88,9 +110,11 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <textarea
+              ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Votre message..."
+              onPaste={handlePaste}
+              placeholder="Votre message... (Vous pouvez coller une image avec Ctrl+V)"
               className="w-full px-3 py-2 border border-gray-300 rounded text-black placeholder-gray-400 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
               rows={2}
               maxLength={500}
@@ -107,9 +131,13 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
                 <label
                   htmlFor="image-upload"
                   className="cursor-pointer p-1 hover:bg-gray-200 rounded"
+                  title="Ajouter une image"
                 >
                   <Image className="w-4 h-4 text-gray-500" />
                 </label>
+                <span className="text-xs text-gray-400">
+                  Ou collez une image (Ctrl+V)
+                </span>
               </div>
               <span className={`text-xs ${message.length > 450 ? 'text-red-500' : 'text-gray-400'}`}>
                 {message.length}/500

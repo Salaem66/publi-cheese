@@ -15,6 +15,7 @@ export interface Message {
 export const useMessages = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
+  const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadMessages = async () => {
@@ -31,8 +32,15 @@ export const useMessages = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
+      const { data: archivedMessagesData } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('status', 'rejected')
+        .order('created_at', { ascending: false });
+
       setMessages((approvedMessages || []) as Message[]);
       setPendingMessages((pendingMessagesData || []) as Message[]);
+      setArchivedMessages((archivedMessagesData || []) as Message[]);
     } catch (error) {
       console.error('Erreur lors du chargement des messages:', error);
       toast({
@@ -125,6 +133,58 @@ export const useMessages = () => {
     }
   };
 
+  const deleteMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadMessages();
+      toast({
+        title: "Message supprimé",
+        description: "Le message a été supprimé définitivement.",
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression du message:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le message",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const archiveMessage = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', messageId);
+
+      if (error) {
+        throw error;
+      }
+
+      await loadMessages();
+      toast({
+        title: "Message archivé",
+        description: "Le message a été archivé et n'est plus visible publiquement.",
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'archivage du message:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'archiver le message",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     loadMessages();
 
@@ -147,9 +207,12 @@ export const useMessages = () => {
   return {
     messages,
     pendingMessages,
+    archivedMessages,
     isLoading,
     addMessage,
     updateMessageStatus,
+    deleteMessage,
+    archiveMessage,
     loadMessages
   };
 };
