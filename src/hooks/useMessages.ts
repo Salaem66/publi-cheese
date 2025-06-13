@@ -31,8 +31,8 @@ export const useMessages = () => {
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      setMessages(approvedMessages || []);
-      setPendingMessages(pendingMessagesData || []);
+      setMessages((approvedMessages || []) as Message[]);
+      setPendingMessages((pendingMessagesData || []) as Message[]);
     } catch (error) {
       console.error('Erreur lors du chargement des messages:', error);
       toast({
