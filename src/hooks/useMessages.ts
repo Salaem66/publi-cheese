@@ -77,7 +77,7 @@ export const useMessages = () => {
         imageUrl = publicUrl;
       }
 
-      const moderationEnabled = localStorage.getItem('moderationEnabled') !== 'false';
+      const moderationEnabled = localStorage.getItem('moderationEnabled') === 'true';
 
       const { error } = await supabase
         .from('messages')

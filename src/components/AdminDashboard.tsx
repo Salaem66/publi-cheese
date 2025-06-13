@@ -11,12 +11,12 @@ interface AdminDashboardProps {
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const { messages, pendingMessages, archivedMessages, updateMessageStatus, deleteMessage, archiveMessage } = useMessages();
-  const [moderationEnabled, setModerationEnabled] = useState(true);
+  const [moderationEnabled, setModerationEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('pending');
 
   useEffect(() => {
     const setting = localStorage.getItem('moderationEnabled');
-    setModerationEnabled(setting !== 'false');
+    setModerationEnabled(setting === 'true');
   }, []);
 
   const toggleModeration = (enabled: boolean) => {
