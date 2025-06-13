@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { messageStorage, Message } from '../utils/messageStorage';
+import { useMessages } from '../hooks/useMessages';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { LogOut, Check, X, Clock, Settings } from 'lucide-react';
@@ -10,30 +11,13 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
-  const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, total: 0 });
+  const { messages, pendingMessages, updateMessageStatus } = useMessages();
   const [moderationEnabled, setModerationEnabled] = useState(true);
 
   useEffect(() => {
-    loadData();
-    loadModerationSetting();
-    
-    // Ajouter un listener pour les changements
-    const handleMessagesChange = () => {
-      loadData();
-    };
-    
-    messageStorage.addListener(handleMessagesChange);
-    
-    return () => {
-      messageStorage.removeListener(handleMessagesChange);
-    };
-  }, []);
-
-  const loadModerationSetting = () => {
     const setting = localStorage.getItem('moderationEnabled');
     setModerationEnabled(setting !== 'false');
-  };
+  }, []);
 
   const toggleModeration = (enabled: boolean) => {
     setModerationEnabled(enabled);
@@ -46,22 +30,8 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     });
   };
 
-  const loadData = () => {
-    const allMessages = messageStorage.getMessages();
-    const pending = messageStorage.getPendingMessages();
-    const approved = allMessages.filter(msg => msg.status === 'approved');
-    
-    setPendingMessages(pending);
-    setStats({
-      pending: pending.length,
-      approved: approved.length,
-      total: allMessages.length
-    });
-  };
-
-  const updateMessageStatus = (messageId: string, status: 'approved' | 'rejected') => {
-    messageStorage.updateMessageStatus(messageId, status);
-    
+  const handleUpdateStatus = async (messageId: string, status: 'approved' | 'rejected') => {
+    await updateMessageStatus(messageId, status);
     toast({
       title: status === 'approved' ? "Message approuvé" : "Message rejeté",
       description: status === 'approved' 
@@ -70,8 +40,14 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     });
   };
 
-  const formatTime = (timestamp: number) => {
+  const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString('fr-FR');
+  };
+
+  const stats = {
+    pending: pendingMessages.length,
+    approved: messages.length,
+    total: messages.length + pendingMessages.length
   };
 
   return (
@@ -151,7 +127,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
           </div>
         </div>
 
-        {/* Messages en attente - seulement si modération activée */}
+        {/* Messages en attente */}
         {moderationEnabled && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
             <h2 className="text-xl font-semibold text-black mb-6">Messages en attente de modération</h2>
@@ -167,17 +143,29 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                   <div key={message.id} className="bg-white border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-gray-500 text-sm">
-                        {formatTime(message.timestamp)}
+                        {formatTime(message.created_at)}
                       </span>
                     </div>
                     
-                    <p className="text-black mb-4 leading-relaxed break-words">
-                      {message.content}
-                    </p>
+                    {message.content && (
+                      <p className="text-black mb-4 leading-relaxed break-words">
+                        {message.content}
+                      </p>
+                    )}
+
+                    {message.image_url && (
+                      <div className="mb-4">
+                        <img
+                          src={message.image_url}
+                          alt="Image du message"
+                          className="max-w-64 h-auto rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
                     
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => updateMessageStatus(message.id, 'approved')}
+                        onClick={() => handleUpdateStatus(message.id, 'approved')}
                         size="sm"
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
@@ -186,7 +174,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                       </Button>
                       
                       <Button
-                        onClick={() => updateMessageStatus(message.id, 'rejected')}
+                        onClick={() => handleUpdateStatus(message.id, 'rejected')}
                         size="sm"
                         variant="destructive"
                       >
