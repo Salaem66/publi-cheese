@@ -1,5 +1,4 @@
-
-import { Message } from './MessageWall';
+import { Message } from '../utils/messageStorage';
 
 interface MessageCardProps {
   message: Message;
