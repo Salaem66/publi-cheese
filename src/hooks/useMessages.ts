@@ -111,8 +111,7 @@ export const useMessages = () => {
         console.log('Public URL generated:', imageUrl);
       }
 
-      const moderationEnabled = localStorage.getItem('moderationEnabled') !== 'false';
-      const messageStatus = moderationEnabled ? 'pending' : 'approved';
+      const messageStatus = 'approved'; // 🔒 Modération désactivée pour tout le monde
       
       console.log('Moderation enabled:', moderationEnabled);
       console.log('Message status will be:', messageStatus);
