@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -80,7 +81,7 @@ export const useMessages = () => {
     console.log('=== ADD MESSAGE STARTED ===');
     console.log('Content:', content);
     console.log('Image file:', imageFile?.name || 'none');
-    console.log('Supabase URL:', supabase.supabaseUrl);
+    console.log('Supabase client configured');
     
     try {
       let imageUrl = null;
@@ -117,19 +118,40 @@ export const useMessages = () => {
       console.log('Message status will be:', messageStatus);
       console.log('Inserting message into database...');
 
+      // Ajouter plus de logs pour Safari
+      console.log('Browser info:', {
+        userAgent: navigator.userAgent,
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        localStorage: !!localStorage,
+        WebSocket: !!WebSocket
+      });
+
+      const messageData = {
+        content,
+        image_url: imageUrl,
+        status: messageStatus
+      };
+      console.log('Message data to insert:', messageData);
+
       const { data, error } = await supabase
         .from('messages')
-        .insert({
-          content,
-          image_url: imageUrl,
-          status: messageStatus
-        })
+        .insert(messageData)
         .select();
+
+      console.log('Database response:', { data, error });
 
       if (error) {
         console.error('Database insert error:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
+        console.error('Error code:', error.code);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error message:', error.message);
         throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('No data returned from insert');
+        throw new Error('No data returned from database insert');
       }
 
       console.log('Message inserted successfully:', data);
@@ -150,7 +172,23 @@ export const useMessages = () => {
     } catch (error) {
       console.error('=== ADD MESSAGE FAILED ===');
       console.error('Error details:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Diagnostic spécial pour Safari
+      if (/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) {
+        console.error('Safari-specific diagnostic:', {
+          localStorage: localStorage.getItem('moderationEnabled'),
+          indexedDB: !!window.indexedDB,
+          websocket: !!WebSocket,
+          fetch: !!fetch
+        });
+      }
       
       toast({
         title: "Erreur",
