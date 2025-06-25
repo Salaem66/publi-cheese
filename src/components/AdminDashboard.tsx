@@ -16,7 +16,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
   useEffect(() => {
     const setting = localStorage.getItem('moderationEnabled');
-    setModerationEnabled(setting !== 'false');
+    setModerationEnabled(setting !== 'true');
   }, []);
 
   const toggleModeration = (enabled: boolean) => {
