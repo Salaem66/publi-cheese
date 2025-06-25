@@ -16,14 +16,18 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('Image selection triggered');
     const file = e.target.files?.[0];
     if (file) {
+      console.log('Image file selected:', file.name, file.size);
       processImageFile(file);
     }
   };
 
   const processImageFile = (file: File) => {
+    console.log('Processing image file:', file.name);
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      console.log('Image too large:', file.size);
       toast({
         title: "Image trop volumineuse",
         description: "L'image ne peut pas dépasser 5MB.",
@@ -33,6 +37,7 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
     }
 
     if (!file.type.startsWith('image/')) {
+      console.log('Invalid file type:', file.type);
       toast({
         title: "Format non supporté",
         description: "Veuillez sélectionner une image.",
@@ -44,18 +49,21 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
     setSelectedImage(file);
     const reader = new FileReader();
     reader.onload = (e) => {
+      console.log('Image preview loaded');
       setImagePreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
+    console.log('Paste event triggered');
     const items = e.clipboardData.items;
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       
       if (item.type.indexOf('image') !== -1) {
+        console.log('Image pasted from clipboard');
         e.preventDefault();
         const file = item.getAsFile();
         if (file) {
@@ -67,6 +75,7 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
   };
 
   const removeImage = () => {
+    console.log('Removing selected image');
     setSelectedImage(null);
     setImagePreview(null);
   };
@@ -74,7 +83,14 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== MESSAGE FORM SUBMISSION STARTED ===');
+    console.log('Message content:', message);
+    console.log('Selected image:', selectedImage?.name || 'none');
+    console.log('User agent:', navigator.userAgent);
+    console.log('Current URL:', window.location.href);
+    
     if (!message.trim() && !selectedImage) {
+      console.log('Empty message and no image - showing error');
       toast({
         title: "Message vide",
         description: "Veuillez écrire quelque chose ou ajouter une image.",
@@ -84,6 +100,7 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
     }
 
     if (message.length > 500) {
+      console.log('Message too long:', message.length);
       toast({
         title: "Message trop long",
         description: "Votre message ne peut pas dépasser 500 caractères.",
@@ -95,12 +112,23 @@ export const MessageForm = ({ onSubmit }: MessageFormProps) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Calling onSubmit function...');
       await onSubmit(message || '', selectedImage || undefined);
+      console.log('onSubmit completed successfully');
       setMessage('');
       setSelectedImage(null);
       setImagePreview(null);
+      console.log('Form reset completed');
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message. Vérifiez votre connexion.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
+      console.log('=== MESSAGE FORM SUBMISSION COMPLETED ===');
     }
   };
 

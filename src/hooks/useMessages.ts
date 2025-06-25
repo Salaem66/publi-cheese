@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -19,28 +18,52 @@ export const useMessages = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const loadMessages = async () => {
+    console.log('=== LOADING MESSAGES ===');
     try {
-      const { data: approvedMessages } = await supabase
+      console.log('Fetching approved messages...');
+      const { data: approvedMessages, error: approvedError } = await supabase
         .from('messages')
         .select('*')
         .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
-      const { data: pendingMessagesData } = await supabase
+      if (approvedError) {
+        console.error('Error fetching approved messages:', approvedError);
+      } else {
+        console.log('Approved messages loaded:', approvedMessages?.length || 0);
+      }
+
+      console.log('Fetching pending messages...');
+      const { data: pendingMessagesData, error: pendingError } = await supabase
         .from('messages')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
-      const { data: archivedMessagesData } = await supabase
+      if (pendingError) {
+        console.error('Error fetching pending messages:', pendingError);
+      } else {
+        console.log('Pending messages loaded:', pendingMessagesData?.length || 0);
+      }
+
+      console.log('Fetching archived messages...');
+      const { data: archivedMessagesData, error: archivedError } = await supabase
         .from('messages')
         .select('*')
         .eq('status', 'rejected')
         .order('created_at', { ascending: false });
 
+      if (archivedError) {
+        console.error('Error fetching archived messages:', archivedError);
+      } else {
+        console.log('Archived messages loaded:', archivedMessagesData?.length || 0);
+      }
+
       setMessages((approvedMessages || []) as Message[]);
       setPendingMessages((pendingMessagesData || []) as Message[]);
       setArchivedMessages((archivedMessagesData || []) as Message[]);
+      
+      console.log('=== MESSAGE LOADING COMPLETED ===');
     } catch (error) {
       console.error('Erreur lors du chargement des messages:', error);
       toast({
@@ -54,46 +77,68 @@ export const useMessages = () => {
   };
 
   const addMessage = async (content: string, imageFile?: File) => {
+    console.log('=== ADD MESSAGE STARTED ===');
+    console.log('Content:', content);
+    console.log('Image file:', imageFile?.name || 'none');
+    console.log('Supabase URL:', supabase.supabaseUrl);
+    
     try {
       let imageUrl = null;
 
       // Upload de l'image si présente
       if (imageFile) {
+        console.log('Starting image upload...');
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `${Date.now()}.${fileExt}`;
         
+        console.log('Uploading to storage:', fileName);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('message-images')
           .upload(fileName, imageFile);
 
         if (uploadError) {
+          console.error('Image upload error:', uploadError);
           throw uploadError;
         }
 
+        console.log('Image uploaded successfully:', uploadData);
         const { data: { publicUrl } } = supabase.storage
           .from('message-images')
           .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
+        console.log('Public URL generated:', imageUrl);
       }
 
       const moderationEnabled = localStorage.getItem('moderationEnabled') !== 'false';
+      const messageStatus = moderationEnabled ? 'pending' : 'approved';
+      
+      console.log('Moderation enabled:', moderationEnabled);
+      console.log('Message status will be:', messageStatus);
+      console.log('Inserting message into database...');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           content,
           image_url: imageUrl,
-          status: moderationEnabled ? 'pending' : 'approved'
-        });
+          status: messageStatus
+        })
+        .select();
 
       if (error) {
+        console.error('Database insert error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
 
+      console.log('Message inserted successfully:', data);
+
       // Recharger les messages
+      console.log('Reloading messages...');
       await loadMessages();
 
+      console.log('Showing success toast...');
       toast({
         title: "Message envoyé !",
         description: moderationEnabled 
@@ -101,11 +146,15 @@ export const useMessages = () => {
           : "Votre message est maintenant visible.",
       });
 
+      console.log('=== ADD MESSAGE COMPLETED SUCCESSFULLY ===');
     } catch (error) {
-      console.error('Erreur lors de l\'ajout du message:', error);
+      console.error('=== ADD MESSAGE FAILED ===');
+      console.error('Error details:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
       toast({
         title: "Erreur",
-        description: "Impossible d'envoyer le message",
+        description: `Impossible d'envoyer le message: ${error instanceof Error ? error.message : 'Erreur inconnue'}`,
         variant: "destructive"
       });
     }
@@ -186,20 +235,26 @@ export const useMessages = () => {
   };
 
   useEffect(() => {
+    console.log('useMessages useEffect triggered');
     loadMessages();
 
     // Écouter les changements en temps réel
+    console.log('Setting up realtime subscription...');
     const channel = supabase
       .channel('messages-changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'messages' }, 
-        () => {
+        (payload) => {
+          console.log('Realtime update received:', payload);
           loadMessages();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, []);
