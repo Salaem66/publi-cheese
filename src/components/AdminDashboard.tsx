@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useMessages } from '../hooks/useMessages';
+import { useSettings } from '../hooks/useSettings';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { LogOut, Check, X, Clock, Settings, Trash2, Archive, Eye } from 'lucide-react';
@@ -11,26 +13,11 @@ interface AdminDashboardProps {
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const { messages, pendingMessages, archivedMessages, updateMessageStatus, deleteMessage, archiveMessage } = useMessages();
-  const [moderationEnabled, setModerationEnabled] = useState(false);
+  const { moderationEnabled, isLoading: settingsLoading, updateModerationSetting } = useSettings();
   const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('published');
 
-  useEffect(() => {
-    const storedModeration = localStorage.getItem('moderationEnabled');
-    const isEnabled = storedModeration === 'true';
-    console.log('Loading moderation state from localStorage:', storedModeration, '-> enabled:', isEnabled);
-    setModerationEnabled(isEnabled);
-  }, []);
-
-  const toggleModeration = (enabled: boolean) => {
-    console.log('Toggling moderation to:', enabled);
-    setModerationEnabled(enabled);
-    localStorage.setItem('moderationEnabled', enabled.toString());
-    toast({
-      title: enabled ? "Modération activée" : "Modération désactivée",
-      description: enabled 
-        ? "Les nouveaux messages devront être approuvés avant publication" 
-        : "Les messages sont publiés automatiquement.",
-    });
+  const toggleModeration = async (enabled: boolean) => {
+    await updateModerationSetting(enabled);
   };
 
   const handleUpdateStatus = async (messageId: string, status: 'approved' | 'rejected') => {
@@ -155,13 +142,19 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <div>
                 <h3 className="text-lg font-semibold text-black">Modération</h3>
                 <p className="text-gray-600 text-sm">
-                  {moderationEnabled
-                    ? "Les messages doivent être approuvés avant publication"
-                    : "Les messages sont publiés automatiquement (par défaut)"}
+                  {settingsLoading 
+                    ? "Chargement des paramètres..."
+                    : moderationEnabled
+                      ? "Les messages doivent être approuvés avant publication"
+                      : "Les messages sont publiés automatiquement (par défaut)"}
                 </p>
               </div>
             </div>
-            <Switch checked={moderationEnabled} onCheckedChange={toggleModeration} />
+            <Switch 
+              checked={moderationEnabled} 
+              onCheckedChange={toggleModeration}
+              disabled={settingsLoading}
+            />
           </div>
         </div>
 

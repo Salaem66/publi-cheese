@@ -1,12 +1,21 @@
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+export interface Message {
+  id: string;
+  content: string;
+  image_url: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const useMessages = () => {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [pendingMessages, setPendingMessages] = useState<any[]>([]);
-  const [archivedMessages, setArchivedMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<Message[]>([]);
+  const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -77,15 +86,33 @@ export const useMessages = () => {
     console.log('Realtime subscription status:', channel.subscriptionStatus);
   };
 
+  const getModerationStatus = async (): Promise<boolean> => {
+    console.log('Fetching moderation status from database...');
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'moderation_enabled')
+      .single();
+
+    if (error) {
+      console.log('No moderation setting found, defaulting to false');
+      return false;
+    }
+
+    const enabled = data.value === 'true';
+    console.log('Moderation status from database:', enabled);
+    return enabled;
+  };
+
   const addMessage = async (content: string, imageFile?: File) => {
     console.log('=== ADD MESSAGE STARTED ===');
     console.log('Content:', content);
     console.log('Image file:', imageFile?.name || 'none');
     console.log('Supabase client configured');
 
-    // 🔒 MODÉRATION DÉSACTIVÉE PAR DÉFAUT - Tous les messages sont approuvés automatiquement
-    const isModerationEnabled = localStorage.getItem('moderationEnabled') === 'true';
-    console.log('Moderation enabled from localStorage:', isModerationEnabled);
+    // Récupérer le statut de modération depuis la BDD
+    const isModerationEnabled = await getModerationStatus();
+    console.log('Moderation enabled from database:', isModerationEnabled);
     
     const status = isModerationEnabled ? 'pending' : 'approved';
     console.log('Message status will be:', status);
@@ -231,6 +258,7 @@ export const useMessages = () => {
     addMessage,
     updateMessageStatus,
     deleteMessage,
-    archiveMessage
+    archiveMessage,
+    getModerationStatus
   };
 };
