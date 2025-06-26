@@ -83,12 +83,14 @@ export const useMessages = () => {
         loadMessages();
       })
       .subscribe();
-    console.log('Realtime subscription status:', channel.subscriptionStatus);
+    console.log('Realtime subscription setup completed');
   };
 
   const getModerationStatus = async (): Promise<boolean> => {
     console.log('Fetching moderation status from database...');
-    const { data, error } = await supabase
+    
+    // Use any to bypass TypeScript errors until types are regenerated
+    const { data, error } = await (supabase as any)
       .from('settings')
       .select('value')
       .eq('key', 'moderation_enabled')

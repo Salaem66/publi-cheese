@@ -16,7 +16,8 @@ export const useSettings = () => {
     console.log('Loading moderation setting from database...');
     setIsLoading(true);
 
-    const { data, error } = await supabase
+    // Use any to bypass TypeScript errors until types are regenerated
+    const { data, error } = await (supabase as any)
       .from('settings')
       .select('value')
       .eq('key', 'moderation_enabled')
@@ -36,7 +37,8 @@ export const useSettings = () => {
   };
 
   const createDefaultModerationSetting = async () => {
-    const { error } = await supabase
+    // Use any to bypass TypeScript errors until types are regenerated
+    const { error } = await (supabase as any)
       .from('settings')
       .insert([{ key: 'moderation_enabled', value: 'false' }]);
 
@@ -59,7 +61,8 @@ export const useSettings = () => {
   const updateModerationSetting = async (enabled: boolean) => {
     console.log('Updating moderation setting to:', enabled);
     
-    const { error } = await supabase
+    // Use any to bypass TypeScript errors until types are regenerated
+    const { error } = await (supabase as any)
       .from('settings')
       .upsert([{ key: 'moderation_enabled', value: enabled.toString() }]);
 
