@@ -11,16 +11,18 @@ interface AdminDashboardProps {
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const { messages, pendingMessages, archivedMessages, updateMessageStatus, deleteMessage, archiveMessage } = useMessages();
-  const [moderationEnabled, setModerationEnabled] = useState(false); // par défaut désactivée
-  const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('pending');
+  const [moderationEnabled, setModerationEnabled] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('published');
 
   useEffect(() => {
-    // Force désactivation de la modération par défaut
-    setModerationEnabled(false);
-    localStorage.setItem('moderationEnabled', 'false');
+    const storedModeration = localStorage.getItem('moderationEnabled');
+    const isEnabled = storedModeration === 'true';
+    console.log('Loading moderation state from localStorage:', storedModeration, '-> enabled:', isEnabled);
+    setModerationEnabled(isEnabled);
   }, []);
 
   const toggleModeration = (enabled: boolean) => {
+    console.log('Toggling moderation to:', enabled);
     setModerationEnabled(enabled);
     localStorage.setItem('moderationEnabled', enabled.toString());
     toast({
@@ -155,7 +157,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
                 <p className="text-gray-600 text-sm">
                   {moderationEnabled
                     ? "Les messages doivent être approuvés avant publication"
-                    : "Les messages sont publiés automatiquement"}
+                    : "Les messages sont publiés automatiquement (par défaut)"}
                 </p>
               </div>
             </div>
@@ -179,10 +181,10 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
         </div>
 
         {!moderationEnabled && activeTab === 'pending' && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mt-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Modération désactivée</p>
-              <p className="text-gray-400 text-sm mt-2">Les messages sont publiés automatiquement</p>
+              <p className="text-blue-600 text-lg font-medium">Modération désactivée</p>
+              <p className="text-blue-500 text-sm mt-2">Tous les nouveaux messages sont publiés automatiquement</p>
             </div>
           </div>
         )}
@@ -207,7 +209,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   function TabNav({ activeTab, setActiveTab, stats }: any) {
     return (
       <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
-        {['pending', 'published', 'archived'].map((tab) => {
+        {['published', 'pending', 'archived'].map((tab) => {
           const label = {
             pending: 'En attente',
             published: 'Publiés',
@@ -218,6 +220,12 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
             pending: Clock,
             published: Eye,
             archived: Archive,
+          }[tab];
+
+          const count = {
+            pending: stats.pending,
+            published: stats.approved,
+            archived: stats.archived,
           }[tab];
 
           return (
@@ -231,7 +239,7 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               }`}
             >
               <Icon className="w-4 h-4 inline mr-2" />
-              {label} ({stats[tab]})
+              {label} ({count})
             </button>
           );
         })}
