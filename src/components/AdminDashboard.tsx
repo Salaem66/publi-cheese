@@ -16,29 +16,54 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const { moderationEnabled, isLoading: settingsLoading, updateModerationSetting } = useSettings();
   const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'archived'>('published');
 
+  // Log pour debug
+  console.log('AdminDashboard render:', { 
+    messagesCount: messages.length, 
+    pendingCount: pendingMessages.length,
+    archivedCount: archivedMessages.length,
+    moderationEnabled,
+    settingsLoading 
+  });
+
   const toggleModeration = async (enabled: boolean) => {
-    await updateModerationSetting(enabled);
+    try {
+      await updateModerationSetting(enabled);
+    } catch (err) {
+      console.error('Error toggling moderation:', err);
+    }
   };
 
   const handleUpdateStatus = async (messageId: string, status: 'approved' | 'rejected') => {
-    await updateMessageStatus(messageId, status);
-    toast({
-      title: status === 'approved' ? "Message approuvé" : "Message rejeté",
-      description: status === 'approved' 
-        ? "Le message est maintenant visible publiquement." 
-        : "Le message a été supprimé.",
-    });
+    try {
+      await updateMessageStatus(messageId, status);
+      toast({
+        title: status === 'approved' ? "Message approuvé" : "Message rejeté",
+        description: status === 'approved' 
+          ? "Le message est maintenant visible publiquement." 
+          : "Le message a été supprimé.",
+      });
+    } catch (err) {
+      console.error('Error updating message status:', err);
+    }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir supprimer définitivement ce message ?')) {
-      await deleteMessage(messageId);
+      try {
+        await deleteMessage(messageId);
+      } catch (err) {
+        console.error('Error deleting message:', err);
+      }
     }
   };
 
   const handleArchiveMessage = async (messageId: string) => {
     if (window.confirm('Êtes-vous sûr de vouloir archiver ce message ?')) {
-      await archiveMessage(messageId);
+      try {
+        await archiveMessage(messageId);
+      } catch (err) {
+        console.error('Error archiving message:', err);
+      }
     }
   };
 
@@ -117,6 +142,17 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     </div>
   );
 
+  // Si les hooks ne sont pas encore initialisés, afficher un message de chargement
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 text-lg">Chargement du dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
@@ -142,18 +178,15 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
               <div>
                 <h3 className="text-lg font-semibold text-black">Modération</h3>
                 <p className="text-gray-600 text-sm">
-                  {settingsLoading 
-                    ? "Chargement des paramètres..."
-                    : moderationEnabled
-                      ? "Les messages doivent être approuvés avant publication"
-                      : "Les messages sont publiés automatiquement (par défaut)"}
+                  {moderationEnabled
+                    ? "Les messages doivent être approuvés avant publication"
+                    : "Les messages sont publiés automatiquement (par défaut)"}
                 </p>
               </div>
             </div>
             <Switch 
               checked={moderationEnabled} 
               onCheckedChange={toggleModeration}
-              disabled={settingsLoading}
             />
           </div>
         </div>

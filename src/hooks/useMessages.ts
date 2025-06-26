@@ -28,46 +28,50 @@ export const useMessages = () => {
     console.log('=== LOADING MESSAGES ===');
     setIsLoading(true);
 
-    console.log('Fetching approved messages...');
-    const { data: approved, error: approvedError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('status', 'approved')
-      .order('created_at', { ascending: false });
+    try {
+      console.log('Fetching approved messages...');
+      const { data: approved, error: approvedError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
 
-    if (approvedError) {
-      console.error('Error loading approved messages:', approvedError);
-    } else {
-      console.log('Approved messages loaded:', approved.length);
-      setMessages(approved);
-    }
+      if (approvedError) {
+        console.error('Error loading approved messages:', approvedError);
+      } else {
+        console.log('Approved messages loaded:', approved.length);
+        setMessages(approved);
+      }
 
-    console.log('Fetching pending messages...');
-    const { data: pending, error: pendingError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
+      console.log('Fetching pending messages...');
+      const { data: pending, error: pendingError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
 
-    if (pendingError) {
-      console.error('Error loading pending messages:', pendingError);
-    } else {
-      console.log('Pending messages loaded:', pending.length);
-      setPendingMessages(pending);
-    }
+      if (pendingError) {
+        console.error('Error loading pending messages:', pendingError);
+      } else {
+        console.log('Pending messages loaded:', pending.length);
+        setPendingMessages(pending);
+      }
 
-    console.log('Fetching archived messages...');
-    const { data: archived, error: archivedError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('status', 'archived')
-      .order('created_at', { ascending: false });
+      console.log('Fetching archived messages...');
+      const { data: archived, error: archivedError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('status', 'archived')
+        .order('created_at', { ascending: false });
 
-    if (archivedError) {
-      console.error('Error loading archived messages:', archivedError);
-    } else {
-      console.log('Archived messages loaded:', archived.length);
-      setArchivedMessages(archived);
+      if (archivedError) {
+        console.error('Error loading archived messages:', archivedError);
+      } else {
+        console.log('Archived messages loaded:', archived.length);
+        setArchivedMessages(archived);
+      }
+    } catch (err) {
+      console.error('Error in loadMessages:', err);
     }
 
     console.log('=== MESSAGE LOADING COMPLETED ===');
@@ -76,34 +80,43 @@ export const useMessages = () => {
 
   const setupRealtimeSubscription = () => {
     console.log('Setting up realtime subscription...');
-    const channel = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        console.log('Realtime change detected, reloading messages...');
-        loadMessages();
-      })
-      .subscribe();
-    console.log('Realtime subscription setup completed');
+    try {
+      const channel = supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+          console.log('Realtime change detected, reloading messages...');
+          loadMessages();
+        })
+        .subscribe();
+      console.log('Realtime subscription setup completed');
+    } catch (err) {
+      console.error('Error setting up realtime subscription:', err);
+    }
   };
 
   const getModerationStatus = async (): Promise<boolean> => {
     console.log('Fetching moderation status from database...');
     
-    // Use any to bypass TypeScript errors until types are regenerated
-    const { data, error } = await (supabase as any)
-      .from('settings')
-      .select('value')
-      .eq('key', 'moderation_enabled')
-      .single();
+    try {
+      // Use any to bypass TypeScript errors until types are regenerated
+      const { data, error } = await (supabase as any)
+        .from('settings')
+        .select('value')
+        .eq('key', 'moderation_enabled')
+        .single();
 
-    if (error) {
-      console.log('No moderation setting found, defaulting to false');
+      if (error) {
+        console.log('No moderation setting found, defaulting to false');
+        return false;
+      }
+
+      const enabled = data.value === 'true';
+      console.log('Moderation status from database:', enabled);
+      return enabled;
+    } catch (err) {
+      console.error('Error fetching moderation status:', err);
       return false;
     }
-
-    const enabled = data.value === 'true';
-    console.log('Moderation status from database:', enabled);
-    return enabled;
   };
 
   const addMessage = async (content: string, imageFile?: File) => {
@@ -112,52 +125,52 @@ export const useMessages = () => {
     console.log('Image file:', imageFile?.name || 'none');
     console.log('Supabase client configured');
 
-    // Récupérer le statut de modération depuis la BDD
-    const isModerationEnabled = await getModerationStatus();
-    console.log('Moderation enabled from database:', isModerationEnabled);
-    
-    const status = isModerationEnabled ? 'pending' : 'approved';
-    console.log('Message status will be:', status);
-    
-    let image_url = null;
-
-    if (imageFile) {
-      console.log('Processing image upload...');
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      console.log('Uploading image with filename:', fileName);
+    try {
+      // Récupérer le statut de modération depuis la BDD
+      const isModerationEnabled = await getModerationStatus();
+      console.log('Moderation enabled from database:', isModerationEnabled);
       
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('message-images')
-        .upload(fileName, imageFile);
+      const status = isModerationEnabled ? 'pending' : 'approved';
+      console.log('Message status will be:', status);
+      
+      let image_url = null;
 
-      if (uploadError) {
-        console.error('Image upload error:', uploadError.message);
-        console.error('Full upload error:', uploadError);
-        throw uploadError;
+      if (imageFile) {
+        console.log('Processing image upload...');
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        console.log('Uploading image with filename:', fileName);
+        
+        const { data: uploadData, error: uploadError } = await supabase
+          .storage
+          .from('message-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) {
+          console.error('Image upload error:', uploadError.message);
+          console.error('Full upload error:', uploadError);
+          throw uploadError;
+        }
+
+        console.log('Image uploaded successfully:', uploadData);
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('message-images')
+          .getPublicUrl(fileName);
+
+        image_url = publicUrlData.publicUrl;
+        console.log('Image public URL:', image_url);
       }
 
-      console.log('Image uploaded successfully:', uploadData);
-      const { data: publicUrlData } = supabase
-        .storage
-        .from('message-images')
-        .getPublicUrl(fileName);
+      const messageData = {
+        content,
+        image_url,
+        status,
+      };
 
-      image_url = publicUrlData.publicUrl;
-      console.log('Image public URL:', image_url);
-    }
+      console.log('Message data to insert:', messageData);
+      console.log('Inserting message into database...');
 
-    const messageData = {
-      content,
-      image_url,
-      status,
-    };
-
-    console.log('Message data to insert:', messageData);
-    console.log('Inserting message into database...');
-
-    try {
       const { data, error } = await supabase
         .from('messages')
         .insert([messageData])
@@ -203,53 +216,68 @@ export const useMessages = () => {
 
   const updateMessageStatus = async (id: string, status: 'approved' | 'rejected') => {
     console.log('Updating message status:', { id, status });
-    const { error } = await supabase
-      .from('messages')
-      .update({ status })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ status })
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error updating message status:', error);
+      if (error) {
+        console.error('Error updating message status:', error);
+        toast({ title: "Erreur", description: "Impossible de modifier le message.", variant: "destructive" });
+        return;
+      }
+
+      console.log('Message status updated successfully');
+      loadMessages();
+    } catch (err) {
+      console.error('Error updating message status:', err);
       toast({ title: "Erreur", description: "Impossible de modifier le message.", variant: "destructive" });
-      return;
     }
-
-    console.log('Message status updated successfully');
-    loadMessages();
   };
 
   const deleteMessage = async (id: string) => {
     console.log('Deleting message:', id);
-    const { error } = await supabase
-      .from('messages')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting message:', error);
+      if (error) {
+        console.error('Error deleting message:', error);
+        toast({ title: "Erreur", description: "Impossible de supprimer le message.", variant: "destructive" });
+        return;
+      }
+
+      console.log('Message deleted successfully');
+      loadMessages();
+    } catch (err) {
+      console.error('Error deleting message:', err);
       toast({ title: "Erreur", description: "Impossible de supprimer le message.", variant: "destructive" });
-      return;
     }
-
-    console.log('Message deleted successfully');
-    loadMessages();
   };
 
   const archiveMessage = async (id: string) => {
     console.log('Archiving message:', id);
-    const { error } = await supabase
-      .from('messages')
-      .update({ status: 'archived' })
-      .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .update({ status: 'archived' })
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error archiving message:', error);
+      if (error) {
+        console.error('Error archiving message:', error);
+        toast({ title: "Erreur", description: "Impossible d'archiver le message.", variant: "destructive" });
+        return;
+      }
+
+      console.log('Message archived successfully');
+      loadMessages();
+    } catch (err) {
+      console.error('Error archiving message:', err);
       toast({ title: "Erreur", description: "Impossible d'archiver le message.", variant: "destructive" });
-      return;
     }
-
-    console.log('Message archived successfully');
-    loadMessages();
   };
 
   return {
