@@ -83,12 +83,72 @@ export const useMessages = () => {
     try {
       const channel = supabase
         .channel('public:messages')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-          console.log('Realtime change detected, reloading messages...');
-          loadMessages();
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'messages' 
+        }, (payload) => {
+          console.log('New message inserted:', payload.new);
+          const newMessage = payload.new as Message;
+          
+          // Add message to appropriate state based on status
+          if (newMessage.status === 'approved') {
+            setMessages(prev => [newMessage, ...prev]);
+          } else if (newMessage.status === 'pending') {
+            setPendingMessages(prev => [newMessage, ...prev]);
+          } else if (newMessage.status === 'archived') {
+            setArchivedMessages(prev => [newMessage, ...prev]);
+          }
+        })
+        .on('postgres_changes', { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'messages' 
+        }, (payload) => {
+          console.log('Message updated:', payload.new);
+          const updatedMessage = payload.new as Message;
+          const oldMessage = payload.old as Message;
+          
+          // Remove from old status list
+          if (oldMessage.status === 'approved') {
+            setMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
+          } else if (oldMessage.status === 'pending') {
+            setPendingMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
+          } else if (oldMessage.status === 'archived') {
+            setArchivedMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id));
+          }
+          
+          // Add to new status list
+          if (updatedMessage.status === 'approved') {
+            setMessages(prev => [updatedMessage, ...prev.filter(msg => msg.id !== updatedMessage.id)]);
+          } else if (updatedMessage.status === 'pending') {
+            setPendingMessages(prev => [updatedMessage, ...prev.filter(msg => msg.id !== updatedMessage.id)]);
+          } else if (updatedMessage.status === 'archived') {
+            setArchivedMessages(prev => [updatedMessage, ...prev.filter(msg => msg.id !== updatedMessage.id)]);
+          }
+        })
+        .on('postgres_changes', { 
+          event: 'DELETE', 
+          schema: 'public', 
+          table: 'messages' 
+        }, (payload) => {
+          console.log('Message deleted:', payload.old);
+          const deletedMessage = payload.old as Message;
+          
+          // Remove from all lists
+          setMessages(prev => prev.filter(msg => msg.id !== deletedMessage.id));
+          setPendingMessages(prev => prev.filter(msg => msg.id !== deletedMessage.id));
+          setArchivedMessages(prev => prev.filter(msg => msg.id !== deletedMessage.id));
         })
         .subscribe();
+      
       console.log('Realtime subscription setup completed');
+      
+      // Cleanup function
+      return () => {
+        console.log('Cleaning up realtime subscription');
+        supabase.removeChannel(channel);
+      };
     } catch (err) {
       console.error('Error setting up realtime subscription:', err);
     }
@@ -187,8 +247,7 @@ export const useMessages = () => {
 
       console.log('Message inserted successfully:', data);
       
-      // Recharger les messages après insertion
-      await loadMessages();
+      // Note: No need to manually update state here as realtime will handle it
       
       // Afficher un toast de succès
       toast({
@@ -229,7 +288,7 @@ export const useMessages = () => {
       }
 
       console.log('Message status updated successfully');
-      loadMessages();
+      // Note: No need to manually reload as realtime will handle the update
     } catch (err) {
       console.error('Error updating message status:', err);
       toast({ title: "Erreur", description: "Impossible de modifier le message.", variant: "destructive" });
@@ -251,7 +310,7 @@ export const useMessages = () => {
       }
 
       console.log('Message deleted successfully');
-      loadMessages();
+      // Note: No need to manually reload as realtime will handle the deletion
     } catch (err) {
       console.error('Error deleting message:', err);
       toast({ title: "Erreur", description: "Impossible de supprimer le message.", variant: "destructive" });
@@ -273,7 +332,7 @@ export const useMessages = () => {
       }
 
       console.log('Message archived successfully');
-      loadMessages();
+      // Note: No need to manually reload as realtime will handle the update
     } catch (err) {
       console.error('Error archiving message:', err);
       toast({ title: "Erreur", description: "Impossible d'archiver le message.", variant: "destructive" });
